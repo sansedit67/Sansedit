@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Order Kustom</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background: #111827;
+  padding: 25px;
+  border-radius: 15px;
+  width: 380px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.6);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+input, select, textarea {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+input[type="file"] {
+  background: #1f2937;
+}
+
+.checkbox-group {
+  margin-top: 10px;
+}
+
+.checkbox-group label {
+  display: block;
+  margin-top: 5px;
+}
+
+button {
+  margin-top: 15px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #16a34a;
+}
+
+.status-link {
+  margin-top: 10px;
+  font-size: 12px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>🎬 Edit Order Kustom</h1>
+
+  <form id="form">
+
+    <input type="text" id="nama" placeholder="Nama" required>
+
+    <input type="text" id="tiktok" placeholder="Nama TikTok" required>
+
+    <input type="url" id="link" placeholder="Link contoh edit TikTok" required>
+
+    <input type="file" id="file" accept="video/*,image/*">
+
+    <select id="resolusi">
+      <option>720p</option>
+      <option>1080p</option>
+      <option>2K</option>
+      <option>4K</option>
+    </select>
+
+    <select id="fps">
+      <option>24 FPS</option>
+      <option>30 FPS</option>
+      <option>35 FPS</option>
+      <option>40 FPS</option>
+      <option>50 FPS</option>
+      <option>60 FPS</option>
+    </select>
+
+    <label><input type="checkbox" id="hdr"> HDR</label>
+
+    <div class="checkbox-group">
+      <strong>Jenis Edit:</strong>
+      <label><input type="checkbox" value="Slowed"> Slowed</label>
+      <label><input type="checkbox" value="Funk"> Funk</label>
+      <label><input type="checkbox" value="Phonk"> Phonk</label>
+      <label><input type="checkbox" value="Ultra Slowed"> Ultra Slowed</label>
+    </div>
+
+    <textarea id="request" placeholder="Request tambahan"></textarea>
+
+    <button type="submit">Kirim Order</button>
+
+  </form>
+
+  <div class="status-link" id="statusLink"></div>
+
+</div>
+
+<script>
+const form = document.getElementById("form");
+const statusLink = document.getElementById("statusLink");
+
+form.addEventListener("submit", function(e){
+  e.preventDefault();
+
+  const nama = document.getElementById("nama").value;
+  const tiktok = document.getElementById("tiktok").value;
+  const link = document.getElementById("link").value;
+  const file = document.getElementById("file").files[0];
+  const resolusi = document.getElementById("resolusi").value;
+  const fps = document.getElementById("fps").value;
+  const hdr = document.getElementById("hdr").checked ? "Ya" : "Tidak";
+  const request = document.getElementById("request").value;
+
+  let edits = [];
+  document.querySelectorAll(".checkbox-group input:checked").forEach(el => {
+    edits.push(el.value);
+  });
+
+  if (edits.length === 0) edits.push("-");
+
+  let fileInfo = "-";
+  if (file) {
+    fileInfo = file.name + " (" + (file.size/1024/1024).toFixed(1) + "MB)";
+  }
+
+  // buat ID order
+  const orderID = "ORD" + Math.floor(Math.random()*100000);
+
+  // simpan status sementara
+  localStorage.setItem(orderID, "Menunggu konfirmasi admin");
+
+  const nomor = "6289512130521";
+
+  const pesan = `ORDER BARU
+
+ID: ${orderID}
+Nama: ${nama}
+TikTok: ${tiktok}
+
+Contoh: ${link}
+File: ${fileInfo}
+
+Resolusi: ${resolusi}
+FPS: ${fps}
+HDR: ${hdr}
+
+Jenis Edit: ${edits.join(", ")}
+
+Request: ${request}
+
+Harga nanti admin tentukan`;
+
+  const url = `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`;
+  window.open(url, "_blank");
+
+  // link status
+  const statusURL = window.location.href + "?id=" + orderID;
+  statusLink.innerHTML = `
+    🔎 Cek status order:<br>
+    <a href="${statusURL}" target="_blank" style="color:#22c55e;">${statusURL}</a>
+  `;
+
+});
+
+// halaman cek status
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
+
+if (id) {
+  document.body.innerHTML = `
+    <div style="color:white;text-align:center;margin-top:50px;">
+      <h2>Status Order</h2>
+      <p>ID: ${id}</p>
+      <p>${localStorage.getItem(id) || "Order tidak ditemukan"}</p>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>
