@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Spatial Sound Generator</title>
+  <style>
+    :root {
+      --bg-color: #080808;
+      --card-bg: #121212;
+      --border-color: #262626;
+      --accent-white: #ffffff;
+      --text-muted: #888888;
+      --hover-bg: #1e1e1e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--accent-white);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header .tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent-white);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      stroke: var(--accent-white);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .upload-zone p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .upload-zone strong {
+      color: var(--accent-white);
+      font-weight: 600;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .file-info {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--hover-bg);
+      border-radius: 8px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-white);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: opacity 0.2s, transform 0.1s;
+      display: none;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn:active {
+      transform: scale(0.99);
+    }
+
+    .workspace {
+      display: none;
+      margin-top: 28px;
+    }
+
+    .visualizer-container {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      background: #0a0a0a;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .control-group {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      padding: 14px;
+      border-radius: 8px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-white);
+      background: var(--border-color);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <span class="tag">Web Audio HRTF 3D Engine</span>
+      <h1>3D Sound Generator</h1>
+    </div>
+
+    <!-- Target File Upload Zone -->
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <svg class="upload-icon" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m0-15l-6 6m6-6l6 6"/>
+      </svg>
+      <p>Pencet di sini untuk <strong>Install Song / Audio File</strong></p>
+      <p style="font-size: 12px; margin-top: 4px; opacity: 0.7;">Format yang didukung: .MP4, .MP3, .WAV, .OGG</p>
+    </div>
+
+    <input type="file" id="fileInput" accept="audio/*,video/mp4">
+
+    <div class="file-info" id="fileInfo">
+      <span id="fileName">song_title.mp4</span>
+      <span style="color: var(--text-muted);" id="fileSize">0 MB</span>
+    </div>
+
+    <button class="btn" id="generateBtn">GENERATE & PLAY 3D SOUND</button>
+
+    <!-- Workspace Controls & Radar Visualizer -->
+    <div class="workspace" id="workspace">
+      <div class="visualizer-container">
+        <canvas id="radarCanvas"></canvas>
+      </div>
+
+      <div class="controls-grid">
+        <div class="control-group">
+          <label>Kecepatan Putaran 3D</label>
+          <input type="range" id="speedControl" min="0.1" max="2" step="0.1" value="0.5">
+        </div>
+        <div class="control-group">
+          <label>Jarak / Radius Suara</label>
+          <input type="range" id="radiusControl" min="1" max="10" step="0.5" value="4">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audioPlayer" loop></audio>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const generateBtn = document.getElementById('generateBtn');
+    const workspace = document.getElementById('workspace');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const speedControl = document.getElementById('speedControl');
+    const radiusControl = document.getElementById('radiusControl');
+    const canvas = document.getElementById('radarCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let audioCtx, source, panner, isProcessing = false;
+    let angle = 0;
+
+    // Handle File Selection
+    fileInput.addEventListener('change', handleFile);
+    
+    // Drag & Drop Handling
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#ffffff'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--border-color)'; });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--border-color)';
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFile();
+      }
+    });
+
+    function handleFile() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const validTypes = ['audio/', 'video/mp4'];
+      const isValid = validTypes.some(type => file.type.startsWith(type)) || file.name.endsWith('.mp4');
+
+      if (!isValid) {
+        alert('Mohon upload file berformat MP4 atau file suara (MP3, WAV, OGG).');
+        return;
+      }
+
+      fileName.textContent = file.name;
+      fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+      fileInfo.style.display = 'flex';
+      generateBtn.style.display = 'block';
+
+      const fileURL = URL.createObjectURL(file);
+      audioPlayer.src = fileURL;
+    }
+
+    // Generate & Setup Web Audio API HRTF Spatial Panner
+    generateBtn.addEventListener('click', () => {
+      if (!audioCtx) {
+        setupAudioContext();
+      }
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      audioPlayer.play();
+      isProcessing = true;
+      generateBtn.textContent = '3D AUDIO ACTIVE (PLAYING)';
+      generateBtn.style.background = '#222';
+      generateBtn.style.color = '#fff';
+      generateBtn.style.border = '1px solid #444';
+      workspace.style.display = 'block';
+
+      resizeCanvas();
+      animate3DAudio();
+    });
+
+    function setupAudioContext() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+
+      // Create Spatial Panner (HRTF for realistic 3D spatial effect)
+      panner = audioCtx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      panner.refDistance = 1;
+      panner.maxDistance = 10000;
+      panner.rolloffFactor = 1;
+
+      source = audioCtx.createMediaElementSource(audioPlayer);
+      source.connect(panner);
+      panner.connect(audioCtx.destination);
+    }
+
+    // Resize canvas dynamically
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // 3D Audio Position Orbit Calculation & Radar Animation
+    function animate3DAudio() {
+      if (!isProcessing) return;
+
+      const speed = parseFloat(speedControl.value) * 0.03;
+      const radius = parseFloat(radiusControl.value);
+
+      angle += speed;
+
+      // X: Kiri-Kanan, Z: Depan-Belakang
+      const x = Math.sin(angle) * radius;
+      const z = Math.cos(angle) * radius;
+
+      if (panner) {
+        if (panner.positionX) {
+          panner.positionX.setValueAtTime(x, audioCtx.currentTime);
+          panner.positionY.setValueAtTime(0, audioCtx.currentTime);
+          panner.positionZ.setValueAtTime(z, audioCtx.currentTime);
+        } else {
+          panner.setPosition(x, 0, z);
+        }
+      }
+
+      drawRadar(x, z, radius);
+      requestAnimationFrame(animate3DAudio);
+    }
+
+    // Modern Monochrome Visualizer Render
+    function drawRadar(x, z, maxRadius) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const scale = Math.min(centerX, centerY) / (maxRadius + 2);
+
+      // Grid Rings
+      ctx.strokeStyle = '#222222';
+      ctx.lineWidth = 1;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, (scale * maxRadius * r) / 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Listener (Kepala / Pusat)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Speaker Orbit Dot
+      const nodeX = centerX + x * scale;
+      const nodeY = centerY + z * scale;
+
+      // Orbit Line Path
+      ctx.strokeStyle = '#333333';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, scale * maxRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Active Rotating Sound Source Dot
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(nodeX, nodeY, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0; // reset shadow
+    }
+  </script>
+</body>
+</html>
